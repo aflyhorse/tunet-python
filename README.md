@@ -25,7 +25,7 @@ Automatically log into the Tsinghua University campus network portal using Pytho
    cd /root/tunet
    ```
 
-2. **Run the setup script:**
+1. **Run the setup script:**
 
    ```bash
    chmod +x setup.sh
@@ -95,7 +95,8 @@ crontab -e
 sudo nano /etc/systemd/system/tunet-login.service
 ```
 
-1. Add content:
+<!-- markdownlint-disable-next-line MD029 -->
+2. Add content:
 
 ```ini
 [Unit]
@@ -114,7 +115,8 @@ User=root
 WantedBy=multi-user.target
 ```
 
-1. Enable and start:
+<!-- markdownlint-disable-next-line MD029 -->
+3. Enable and start:
 
 ```bash
 sudo systemctl enable tunet-login.service
