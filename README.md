@@ -36,7 +36,22 @@ Automatically log into the Tsinghua University campus network portal using Pytho
 
 ## Usage
 
-### Method 1: Environment Variables (Recommended)
+### Method 1: .env File (Recommended)
+
+Create a `.env` file from the example:
+
+```bash
+cp .env.example .env
+# Edit .env with your credentials
+```
+
+Then simply run:
+
+```bash
+python3 tunet_login.py
+```
+
+### Method 2: Environment Variables
 
 ```bash
 export TUNET_USERNAME='your_username'
@@ -44,13 +59,13 @@ export TUNET_PASSWORD='your_password'
 python3 tunet_login.py
 ```
 
-### Method 2: Command Line Arguments
+### Method 3: Command Line Arguments
 
 ```bash
 python3 tunet_login.py -u your_username -p your_password
 ```
 
-### Method 3: With Visible Browser (for debugging)
+### Method 4: With Visible Browser (for debugging)
 
 ```bash
 python3 tunet_login.py -u your_username -p your_password --no-headless
@@ -168,6 +183,7 @@ If you encounter ChromeDriver issues:
 ├── tunet_login.py      # Main script
 ├── requirements.txt    # Python dependencies
 ├── setup.sh           # Installation script
+├── .env.example       # Environment variables template
 └── README.md          # This file
 ```
 

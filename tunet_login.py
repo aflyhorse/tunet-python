@@ -15,6 +15,11 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, WebDriverException
 
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    load_dotenv = None
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
@@ -44,7 +49,8 @@ class TunetAutoLogin:
 
         if not self.username or not self.password:
             raise ValueError(
-                "Username and password must be provided either as arguments or environment variables (TUNET_USERNAME, TUNET_PASSWORD)"
+                "Username and password must be provided either as arguments or environment variables "
+                + "(TUNET_USERNAME, TUNET_PASSWORD)"
             )
 
     def setup_driver(self):
@@ -63,7 +69,8 @@ class TunetAutoLogin:
         chrome_options.add_argument("--allow-running-insecure-content")
         chrome_options.add_argument("--disable-extensions")
         chrome_options.add_argument(
-            "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            "--user-agent=Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) "
+            + "Chrome/91.0.4472.124 Safari/537.36"
         )
 
         try:
@@ -191,7 +198,8 @@ class TunetAutoLogin:
                     logger.info(f"Found {len(inputs)} input elements")
                     for i, inp in enumerate(inputs[:5]):  # Check first 5 inputs
                         logger.info(
-                            f"Input {i}: id='{inp.get_attribute('id')}', type='{inp.get_attribute('type')}', name='{inp.get_attribute('name')}'"
+                            f"Input {i}: id='{inp.get_attribute('id')}', type='{inp.get_attribute('type')}', "
+                            + f"name='{inp.get_attribute('name')}'"
                         )
                 except Exception as e:
                     logger.error(f"Error searching for input elements: {e}")
@@ -239,7 +247,8 @@ class TunetAutoLogin:
                         error_text = error_elements[0].text
                         logger.error(f"Login error: {error_text}")
                         return False
-                except:
+                except Exception as e:
+                    logger.warning(f"Error checking for login errors: {e}")
                     pass
 
                 logger.warning("Login status unclear - may need manual verification")
@@ -281,6 +290,10 @@ class TunetAutoLogin:
 
 def main():
     """Command line interface"""
+    # Load environment variables from .env file if available
+    if load_dotenv is not None:
+        load_dotenv()
+
     import argparse
 
     parser = argparse.ArgumentParser(
