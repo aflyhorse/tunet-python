@@ -28,7 +28,9 @@ logger = logging.getLogger(__name__)
 
 
 class TunetAutoLogin:
-    def __init__(self, username=None, password=None, headless=True, timeout=30):
+    def __init__(
+        self, username=None, password=None, headless=True, timeout=30, quiet=False
+    ):
         """
         Initialize the auto login client
 
@@ -37,11 +39,13 @@ class TunetAutoLogin:
             password (str): Campus network password
             headless (bool): Run browser in headless mode
             timeout (int): Maximum wait time for elements
+            quiet (bool): Quiet mode - suppress success messages
         """
         self.username = username or os.getenv("TUNET_USERNAME")
         self.password = password or os.getenv("TUNET_PASSWORD")
         self.headless = headless
         self.timeout = timeout
+        self.quiet = quiet
         self.driver = None
         self.login_url = (
             "http://auth6.tsinghua.edu.cn/srun_portal_pc?ac_id=163&theme=pro"
@@ -52,6 +56,15 @@ class TunetAutoLogin:
                 "Username and password must be provided either as arguments or environment variables "
                 + "(TUNET_USERNAME, TUNET_PASSWORD)"
             )
+
+    def _log_info(self, message):
+        """Log info message only if not in quiet mode"""
+        if not self.quiet:
+            logger.info(message)
+
+    def _log_debug(self, message):
+        """Log debug message (always shown regardless of quiet mode)"""
+        logger.debug(message)
 
     def setup_driver(self):
         """Setup Chrome driver with appropriate options"""
@@ -79,10 +92,12 @@ class TunetAutoLogin:
             self.driver = webdriver.Chrome(options=chrome_options)
             # Set page load timeout
             self.driver.set_page_load_timeout(60)
-            logger.info("Chrome driver initialized successfully using Selenium Manager")
+            self._log_info(
+                "Chrome driver initialized successfully using Selenium Manager"
+            )
         except WebDriverException as e:
             logger.error(f"Failed to initialize Chrome driver: {e}")
-            logger.info(
+            self._log_info(
                 "Please ensure Chrome/Chromium is installed and compatible with current Selenium version"
             )
             raise
@@ -94,7 +109,7 @@ class TunetAutoLogin:
 
             # Check for success page indicators
             if "page   : 'success'" in page_source or 'page:"success"' in page_source:
-                logger.info("Detected success page - already logged in")
+                self._log_info("Detected success page - already logged in")
                 return "already_logged_in"
 
             # Check for other success indicators
@@ -110,7 +125,7 @@ class TunetAutoLogin:
                 1 for indicator in success_indicators if indicator in page_source
             )
             if success_count >= 3:  # If we find 3 or more success indicators
-                logger.info(
+                self._log_info(
                     f"Detected {success_count} success indicators - likely already logged in"
                 )
                 return "already_logged_in"
@@ -128,7 +143,7 @@ class TunetAutoLogin:
                 1 for indicator in login_indicators if indicator in page_source
             )
             if login_count >= 3:  # If we find 3 or more login indicators
-                logger.info(
+                self._log_info(
                     f"Detected {login_count} login indicators - login form present"
                 )
                 return "need_login"
@@ -143,18 +158,18 @@ class TunetAutoLogin:
     def login(self):
         """Perform the login process"""
         try:
-            logger.info(f"Navigating to login page: {self.login_url}")
+            self._log_info(f"Navigating to login page: {self.login_url}")
             self.driver.get(self.login_url)
 
             # Wait for page to load and log current status
-            logger.info("Page loaded, checking current URL and title...")
-            logger.info(f"Current URL: {self.driver.current_url}")
-            logger.info(f"Page title: {self.driver.title}")
+            self._log_info("Page loaded, checking current URL and title...")
+            self._log_info(f"Current URL: {self.driver.current_url}")
+            self._log_info(f"Page title: {self.driver.title}")
 
             # Check if page content is accessible
             try:
                 page_source_length = len(self.driver.page_source)
-                logger.info(f"Page source length: {page_source_length} characters")
+                self._log_info(f"Page source length: {page_source_length} characters")
                 if page_source_length < 1000:
                     logger.warning(
                         "Page source seems too short, might be a loading issue"
@@ -171,7 +186,8 @@ class TunetAutoLogin:
             # Check if already logged in
             login_status = self.check_login_status()
             if login_status == "already_logged_in":
-                logger.info("✅ Already logged in! No login required.")
+                if not self.quiet:
+                    logger.info("✅ Already logged in! No login required.")
                 return True
             elif login_status == "unknown":
                 logger.warning(
@@ -182,22 +198,22 @@ class TunetAutoLogin:
             wait = WebDriverWait(self.driver, self.timeout)
 
             # Wait for username field to be present
-            logger.info("Waiting for login form to load...")
+            self._log_info("Waiting for login form to load...")
             try:
                 username_field = wait.until(
                     EC.presence_of_element_located((By.ID, "username"))
                 )
-                logger.info("Username field found successfully")
+                self._log_info("Username field found successfully")
             except TimeoutException:
                 logger.error("Username field not found within timeout")
                 # Try to find other elements to debug
-                logger.info("Attempting to find alternative selectors...")
+                self._log_info("Attempting to find alternative selectors...")
                 try:
                     # Check if any input fields exist
                     inputs = self.driver.find_elements(By.TAG_NAME, "input")
-                    logger.info(f"Found {len(inputs)} input elements")
+                    self._log_info(f"Found {len(inputs)} input elements")
                     for i, inp in enumerate(inputs[:5]):  # Check first 5 inputs
-                        logger.info(
+                        self._log_info(
                             f"Input {i}: id='{inp.get_attribute('id')}', type='{inp.get_attribute('type')}', "
                             + f"name='{inp.get_attribute('name')}'"
                         )
@@ -206,12 +222,12 @@ class TunetAutoLogin:
                 raise
 
             # Fill username
-            logger.info("Entering username...")
+            self._log_info("Entering username...")
             username_field.clear()
             username_field.send_keys(self.username)
 
             # Fill password
-            logger.info("Entering password...")
+            self._log_info("Entering password...")
             password_field = self.driver.find_element(By.ID, "password")
             password_field.clear()
             password_field.send_keys(self.password)
@@ -219,11 +235,13 @@ class TunetAutoLogin:
             # Check if domain checkbox should be checked (for external network access)
             domain_checkbox = self.driver.find_element(By.ID, "domain")
             if not domain_checkbox.is_selected():
-                logger.info("Checking domain checkbox for external network access...")
+                self._log_info(
+                    "Checking domain checkbox for external network access..."
+                )
                 domain_checkbox.click()
 
             # Click login button
-            logger.info("Clicking login button...")
+            self._log_info("Clicking login button...")
             login_button = wait.until(
                 EC.element_to_be_clickable((By.ID, "login-account"))
             )
@@ -235,7 +253,9 @@ class TunetAutoLogin:
             # Check if login was successful by looking for redirect or success indicators
             current_url = self.driver.current_url
             if current_url != self.login_url:
-                logger.info(f"Login appears successful! Redirected to: {current_url}")
+                self._log_info(
+                    f"Login appears successful! Redirected to: {current_url}"
+                )
                 return True
             else:
                 # Check for any error messages
@@ -264,13 +284,15 @@ class TunetAutoLogin:
     def run(self):
         """Main execution method"""
         try:
-            logger.info("Starting Tsinghua University Network Auto Login")
+            if not self.quiet:
+                logger.info("Starting Tsinghua University Network Auto Login")
             self.setup_driver()
 
             result = self.login()
 
             if result is True:
-                logger.info("✅ Login successful!")
+                if not self.quiet:
+                    logger.info("✅ Login successful!")
                 return True
             elif result is False:
                 logger.error("❌ Login failed!")
@@ -285,7 +307,7 @@ class TunetAutoLogin:
         finally:
             if self.driver:
                 self.driver.quit()
-                logger.info("Browser closed")
+                self._log_info("Browser closed")
 
 
 def main():
@@ -310,6 +332,12 @@ def main():
     parser.add_argument(
         "-v", "--verbose", action="store_true", help="Enable verbose logging"
     )
+    parser.add_argument(
+        "-q",
+        "--quiet",
+        action="store_true",
+        help="Quiet mode - no output if login successful or already logged in",
+    )
 
     args = parser.parse_args()
 
@@ -322,6 +350,7 @@ def main():
             password=args.password,
             headless=not args.no_headless,
             timeout=args.timeout,
+            quiet=args.quiet,
         )
 
         success = client.run()

@@ -75,7 +75,7 @@ python3 tunet_login.py -u your_username -p your_password --no-headless
 
 ```shell
 usage: tunet_login.py [-h] [-u USERNAME] [-p PASSWORD] [--no-headless] 
-                      [--timeout TIMEOUT] [-v]
+                      [--timeout TIMEOUT] [-v] [-q]
 
 Tsinghua University Network Auto Login
 
@@ -88,11 +88,14 @@ optional arguments:
   --no-headless         Run with visible browser window
   --timeout TIMEOUT     Timeout in seconds (default: 30)
   -v, --verbose         Enable verbose logging
+  -q, --quiet           Quiet mode - no output if login successful or already logged in
 ```
 
 ## Automation
 
 ### Add to crontab for periodic login
+
+#### Using system Python
 
 ```bash
 # Edit crontab
@@ -100,6 +103,23 @@ crontab -e
 
 # Add line to run every hour (adjust path as needed)
 0 * * * * cd /root/tunet && python3 tunet_login.py
+```
+
+#### Using Python virtual environment
+
+```bash
+# Edit crontab
+crontab -e
+
+# Add line to run every hour using virtual environment
+# Replace /path/to/your/project with your actual project path
+0 * * * * cd /path/to/your/project && /path/to/your/project/venv/bin/python tunet_login.py
+
+# Alternative: use full paths and quiet mode for cron
+0 * * * * /path/to/your/project/venv/bin/python /path/to/your/project/tunet_login.py -q
+
+# Example with actual paths:
+# 0 * * * * cd /home/user/tunet-python && /home/user/tunet-python/venv/bin/python tunet_login.py -q
 ```
 
 ### Create a systemd service
